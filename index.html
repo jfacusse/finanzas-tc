@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💳 Finanzas TC — Jorge Facusse</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="data.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 13px;
+      margin-bottom: 28px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+    .card {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .card-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .card-sub {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 6px;
+    }
+
+    .urgent { border-color: #ef4444; }
+    .urgent .card-value { color: #ef4444; }
+
+    .ok { border-color: #22c55e; }
+    .ok .card-value { color: #22c55e; }
+
+    .info { border-color: #3b82f6; }
+    .info .card-value { color: #3b82f6; }
+
+    .warn { border-color: #f59e0b; }
+    .warn .card-value { color: #f59e0b; }
+
+    /* Progress bar */
+    .progress-wrap { margin-top: 12px; }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 5px;
+    }
+    .progress-bar {
+      height: 6px;
+      background: #2d3148;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.6s ease;
+    }
+    .fill-red { background: #ef4444; }
+    .fill-green { background: #22c55e; }
+    .fill-blue { background: #3b82f6; }
+    .fill-amber { background: #f59e0b; }
+
+    /* Cuotas table */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #475569;
+      text-align: left;
+      padding: 0 12px 10px 0;
+      font-weight: 600;
+    }
+    td {
+      font-size: 13px;
+      padding: 10px 12px 10px 0;
+      border-top: 1px solid #2d3148;
+      color: #cbd5e1;
+    }
+    td.bold { font-weight: 600; color: #fff; }
+    td.green { color: #22c55e; font-weight: 600; }
+    td.red { color: #ef4444; font-weight: 600; }
+    td.amber { color: #f59e0b; font-weight: 600; }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-green { background: #14532d; color: #4ade80; }
+    .badge-red { background: #450a0a; color: #f87171; }
+    .badge-amber { background: #451a03; color: #fbbf24; }
+
+    /* Fintual card */
+    .fintual-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #2d3148;
+      font-size: 13px;
+    }
+    .fintual-row:last-child { border-bottom: none; }
+    .fintual-label { color: #94a3b8; }
+    .fintual-val { font-weight: 600; color: #fff; }
+    .fintual-val.green { color: #22c55e; }
+
+    /* Section header */
+    .section-header {
+      font-size: 14px;
+      font-weight: 700;
+      color: #94a3b8;
+      margin: 24px 0 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Chart container */
+    .chart-wrap {
+      position: relative;
+      height: 240px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>💳 Control Tarjeta de Crédito</h1>
+<p class="subtitle" id="subtitle">Visa Signature ****7252 · Banco de Chile · Actualizado: —</p>
+
+<!-- FILA 1: KPIs principales -->
+<div class="grid grid-4" style="margin-bottom:16px">
+  <div class="card" id="card-vencimiento">
+    <div class="card-title">Próximo Vencimiento</div>
+    <div class="card-value" id="dias-restantes">—</div>
+    <div class="card-sub" id="fecha-vencimiento">—</div>
+  </div>
+
+  <div class="card" id="card-pagar">
+    <div class="card-title">Último Monto Facturado</div>
+    <div class="card-value" id="monto-facturado">—</div>
+    <div class="card-sub" id="estado-pago">—</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cuotas Activas</div>
+    <div class="card-value" id="cuotas-activas">—</div>
+    <div class="card-sub" id="monto-mensual-cuotas">—</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Deuda Total Cuotas</div>
+    <div class="card-value" id="deuda-total">—</div>
+    <div class="card-sub">monto pendiente total</div>
+  </div>
+</div>
+
+<!-- FILA 2: Cupos -->
+<div class="grid grid-2" style="margin-bottom:0">
+  <div class="card">
+    <div class="card-title">Cupo Nacional</div>
+    <div class="card-value" id="disponible-nacional">—</div>
+    <div class="card-sub" id="utilizado-nacional">—</div>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Utilizado</span>
+        <span id="pct-nacional">—</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="bar-nacional" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cupo Internacional (USD)</div>
+    <div class="card-value" id="disponible-intl">—</div>
+    <div class="card-sub" id="utilizado-intl">—</div>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Utilizado</span>
+        <span id="pct-intl">—</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill fill-blue" id="bar-intl" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUOTAS -->
+<div class="section-header">📋 Cuotas Activas</div>
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Descripción</th>
+        <th>Fecha Compra</th>
+        <th>Cuota</th>
+        <th>Monto/Cuota</th>
+        <th>Restantes</th>
+        <th>Pendiente</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-cuotas"></tbody>
+  </table>
+</div>
+
+<!-- FINTUAL + GASTOS -->
+<div class="grid grid-2" style="margin-top:16px">
+
+  <div>
+    <div class="section-header">📈 Plan Fintual — Mac</div>
+    <div class="card">
+      <div id="fintual-rows"></div>
+      <div class="progress-wrap" style="margin-top:14px">
+        <div class="progress-label">
+          <span>Progreso hacia la meta</span>
+          <span id="pct-fintual">—</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill fill-green" id="bar-fintual" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-header">📊 Gastos por Categoría</div>
+    <div class="card" id="card-gastos">
+      <div id="periodo-gastos" style="font-size:12px;color:#64748b;margin-bottom:12px">—</div>
+      <div class="chart-wrap">
+        <canvas id="chartGastos"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- HISTORIAL -->
+<div class="section-header">🗓️ Historial Mensual</div>
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Período</th>
+        <th>Monto Facturado</th>
+        <th>Estado</th>
+        <th>Top Categoría</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-historial"></tbody>
+  </table>
+</div>
+
+<div style="margin-top:24px;font-size:11px;color:#374151;text-align:center">
+  Actualizado manualmente cada mes · github.com/jfacusse/finanzas-tc
+</div>
+
+<script>
+const fmt = n => '$' + Math.round(n).toLocaleString('es-CL');
+const fmtUSD = n => 'USD ' + n.toFixed(2);
+
+function cuotaActual(fechaCompra, nCuotas) {
+  const compra = new Date(fechaCompra);
+  const hoy = new Date();
+  const meses = (hoy.getFullYear() - compra.getFullYear()) * 12 + (hoy.getMonth() - compra.getMonth());
+  return Math.min(nCuotas, Math.max(1, meses + 1));
+}
+
+function proximoVencimiento(dia) {
+  const hoy = new Date();
+  let fecha = new Date(hoy.getFullYear(), hoy.getMonth(), dia);
+  if (hoy.getDate() > dia) {
+    fecha = new Date(hoy.getFullYear(), hoy.getMonth() + 1, dia);
+  }
+  return fecha;
+}
+
+function init() {
+  const { tarjeta, cuotas, fintual, meses } = DATA;
+
+  // Subtitle
+  document.getElementById('subtitle').textContent =
+    `${tarjeta.tipo} · Banco de Chile · Actualizado: ${tarjeta.ultimaActualizacion}`;
+
+  // Vencimiento
+  const venc = proximoVencimiento(tarjeta.diaVencimiento);
+  const hoy = new Date();
+  const dias = Math.ceil((venc - hoy) / 86400000);
+  const cardVenc = document.getElementById('card-vencimiento');
+  const diasEl = document.getElementById('dias-restantes');
+  diasEl.textContent = dias + (dias === 1 ? ' día' : ' días');
+  document.getElementById('fecha-vencimiento').textContent =
+    venc.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (dias <= 5) { cardVenc.classList.add('urgent'); }
+  else if (dias <= 10) { cardVenc.classList.add('warn'); }
+  else { cardVenc.classList.add('ok'); }
+
+  // Último facturado
+  const ultimoMes = meses[meses.length - 1];
+  document.getElementById('monto-facturado').textContent = fmt(ultimoMes.montoFacturado);
+  const estadoPago = document.getElementById('estado-pago');
+  const cardPagar = document.getElementById('card-pagar');
+  if (ultimoMes.pagado) {
+    estadoPago.innerHTML = '<span class="badge badge-green">✅ Pagado</span> · ' + ultimoMes.periodo;
+    cardPagar.classList.add('ok');
+  } else {
+    estadoPago.innerHTML = '<span class="badge badge-red">⚠️ Pendiente</span> · ' + ultimoMes.periodo;
+    cardPagar.classList.add('urgent');
+  }
+
+  // Cuotas activas
+  let mensualTotal = 0, deudaTotal = 0, activas = 0;
+  const tbody = document.getElementById('tabla-cuotas');
+  cuotas.forEach(c => {
+    const actual = cuotaActual(c.fechaCompra, c.nCuotas);
+    const restantes = c.nCuotas - actual;
+    const pendiente = restantes * c.montoCuota;
+    if (restantes > 0) { activas++; mensualTotal += c.montoCuota; deudaTotal += pendiente; }
+
+    const estadoBadge = restantes <= 0
+      ? '<span class="badge badge-green">✅ Pagada</span>'
+      : restantes === 1
+        ? '<span class="badge badge-amber">⚠️ Última</span>'
+        : '<span class="badge badge-red">🔄 Activa</span>';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="bold">${c.descripcion}</td>
+      <td>${new Date(c.fechaCompra).toLocaleDateString('es-CL')}</td>
+      <td>${actual}/${c.nCuotas}</td>
+      <td>${fmt(c.montoCuota)}</td>
+      <td class="${restantes <= 1 ? 'amber' : ''}">${restantes}</td>
+      <td class="${restantes <= 0 ? 'green' : 'red'}">${restantes <= 0 ? '—' : fmt(pendiente)}</td>
+      <td>${estadoBadge}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('cuotas-activas').textContent = activas;
+  document.getElementById('monto-mensual-cuotas').textContent = fmt(mensualTotal) + '/mes en cuotas';
+  document.getElementById('deuda-total').textContent = fmt(deudaTotal);
+
+  // Cupos
+  const pctNac = (tarjeta.cupoUtilizadoNacional / tarjeta.limiteNacional * 100).toFixed(1);
+  const pctIntl = (tarjeta.cupoUtilizadoInternacionalUSD / tarjeta.limiteInternacional * 100).toFixed(1);
+  const dispNac = tarjeta.limiteNacional - tarjeta.cupoUtilizadoNacional;
+  const dispIntl = tarjeta.limiteInternacional - tarjeta.cupoUtilizadoInternacionalUSD;
+
+  document.getElementById('disponible-nacional').textContent = fmt(dispNac);
+  document.getElementById('utilizado-nacional').textContent = `${fmt(tarjeta.cupoUtilizadoNacional)} utilizado de ${fmt(tarjeta.limiteNacional)}`;
+  document.getElementById('pct-nacional').textContent = pctNac + '%';
+  const barNac = document.getElementById('bar-nacional');
+  barNac.style.width = pctNac + '%';
+  barNac.classList.add(pctNac > 80 ? 'fill-red' : pctNac > 50 ? 'fill-amber' : 'fill-green');
+
+  document.getElementById('disponible-intl').textContent = fmtUSD(dispIntl);
+  document.getElementById('utilizado-intl').textContent = `${fmtUSD(tarjeta.cupoUtilizadoInternacionalUSD)} utilizado de ${fmtUSD(tarjeta.limiteInternacional)}`;
+  document.getElementById('pct-intl').textContent = pctIntl + '%';
+  document.getElementById('bar-intl').style.width = pctIntl + '%';
+
+  // Fintual
+  const totalDepositado = fintual.depositadoInicial + fintual.ventaMacEstimada + (fintual.aporteMensual * fintual.mesesPlan);
+  const pctFintual = Math.min(100, (totalDepositado / fintual.totalMeta * 100)).toFixed(1);
+  const fRows = document.getElementById('fintual-rows');
+  const fItems = [
+    { label: 'Pie depositado', val: fmt(fintual.depositadoInicial), green: false },
+    { label: 'Venta Mac estimada', val: fmt(fintual.ventaMacEstimada), green: false },
+    { label: `Aportes ${fintual.mesesPlan} meses`, val: fmt(fintual.aporteMensual * fintual.mesesPlan), green: false },
+    { label: 'Total estimado', val: fmt(totalDepositado), green: true },
+    { label: 'Meta (Mac)', val: fmt(fintual.totalMeta), green: false },
+    { label: 'Superávit estimado', val: fmt(totalDepositado - fintual.totalMeta), green: true },
+  ];
+  fItems.forEach(item => {
+    fRows.innerHTML += `
+      <div class="fintual-row">
+        <span class="fintual-label">${item.label}</span>
+        <span class="fintual-val ${item.green ? 'green' : ''}">${item.val}</span>
+      </div>`;
+  });
+  document.getElementById('pct-fintual').textContent = pctFintual + '%';
+  document.getElementById('bar-fintual').style.width = pctFintual + '%';
+
+  // Gastos chart
+  const mesActual = meses[meses.length - 1];
+  document.getElementById('periodo-gastos').textContent = mesActual.periodo;
+  const labels = Object.keys(mesActual.gastos);
+  const values = Object.values(mesActual.gastos);
+  const colors = [
+    '#ef4444','#f97316','#f59e0b','#84cc16','#22c55e',
+    '#14b8a6','#3b82f6','#8b5cf6','#ec4899','#64748b',
+    '#06b6d4','#a78bfa','#fb7185'
+  ];
+  new Chart(document.getElementById('chartGastos'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, padding: 8 }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${fmt(ctx.parsed)}`
+          }
+        }
+      }
+    }
+  });
+
+  // Historial
+  const tbodyH = document.getElementById('tabla-historial');
+  [...meses].reverse().forEach(m => {
+    const topCat = Object.entries(m.gastos).sort((a,b) => b[1]-a[1])[0];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="bold">${m.periodo}</td>
+      <td>${fmt(m.montoFacturado)}</td>
+      <td>${m.pagado ? '<span class="badge badge-green">✅ Pagado</span>' : '<span class="badge badge-red">⚠️ Pendiente</span>'}</td>
+      <td>${topCat[0]} · ${fmt(topCat[1])}</td>
+    `;
+    tbodyH.appendChild(tr);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
