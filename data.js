@@ -55,8 +55,8 @@ const DATA = {
   fintual: {
     meta: "MacBook Air M5",
     depositadoInicial: 900000,
-    aporteMensual: 45000,
-    mesesPlan: 11,
+    aporteMensual: 0,
+    mesesPlan: 0,
     ventaMacEstimada: 550000,
     totalMeta: 1384990
   },
